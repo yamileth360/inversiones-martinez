@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inversiones Martínez - Sistema POS</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="container-pos">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-university"></i>
+                <div>
+                    <h3>Inversiones Martínez</h3>
+                    <small id="saludo-usuario"></small>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <a href="#" class="active" onclick="mostrarSeccion('dashboard')">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </a>
+                <a href="#" onclick="mostrarSeccion('clientes')">
+                    <i class="fas fa-users"></i> Clientes
+                </a>
+                <a href="#" onclick="mostrarSeccion('prestamos')">
+                    <i class="fas fa-hand-holding-dollar"></i> Préstamos
+                </a>
+                <a href="#" onclick="mostrarSeccion('cobranza')">
+                    <i class="fas fa-cash-register"></i> Cobranza
+                </a>
+                <a href="#" onclick="mostrarSeccion('gastos')">
+                    <i class="fas fa-wallet"></i> Caja Chica
+                </a>
+                <a href="#" onclick="mostrarSeccion('reportes')">
+                    <i class="fas fa-chart-line"></i> Reportes
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#" onclick="cerrarSesion()">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <section id="sec-dashboard" class="content-section">
+                <header class="section-header">
+                    <h2>Panel de Control</h2>
+                </header>
+
+                <div class="cards-grid">
+                    <div class="card-dashboard">
+                        <div class="card-icon" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-users"></i>
+                        </div>
+                        <div class="card-info">
+                            <h3 id="total-clientes">0</h3>
+                            <p>Clientes</p>
+                        </div>
+                    </div>
+                    <div class="card-dashboard">
+                        <div class="card-icon" style="background: #fef3c7; color: #92400e;"><i
+                                class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="card-info">
+                            <h3 id="prestamos-activos">0</h3>
+                            <p>Préstamos Activos</p>
+                        </div>
+                    </div>
+                    <div class="card-dashboard">
+                        <div class="card-icon" style="background: #f1f5f9; color: #1e293b;"><i class="fas fa-road"></i>
+                        </div>
+                        <div class="card-info">
+                            <h2 id="total-prestado">$0</h2>
+                            <p>Capital en la Calle</p>
+                        </div>
+                    </div>
+                    <div class="card-dashboard">
+                        <div class="card-icon" style="background: #dcfce7; color: #166534;"><i class="fas fa-coins"></i>
+                        </div>
+                        <div class="card-info">
+                            <h2 id="total-intereses">$0</h2>
+                            <p>Intereses Cobrados</p>
+                        </div>
+                    </div>
+                    <div class="card-dashboard" style="border-bottom: 4px solid #dc2626;">
+                        <div class="card-icon" style="background: #fee2e2; color: #dc2626;"><i
+                                class="fas fa-calendar-check"></i></div>
+                        <div class="card-info">
+                            <h3 id="pagos-hoy">0</h3>
+                            <p>Cobros Hoy</p>
+                        </div>
+                    </div>
+                    <div class="card-dashboard">
+                        <div class="card-icon" style="background: #ffedd5; color: #9a3412;"><i class="fas fa-clock"></i>
+                        </div>
+                        <div class="card-info">
+                            <h2 id="total-atrasados">0</h2>
+                            <p>Intereses por Cobrar</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-charts-container"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 30px;">
+                    <div class="chart-card"
+                        style="background: white; padding: 25px; border-radius: 15px; text-align: center;">
+                        <h3>Distribución de Capital</h3>
+                        <svg width="180" height="180" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="8" />
+                            <circle id="circulo-progreso" cx="50" cy="50" r="45" fill="none" stroke="#2563eb"
+                                stroke-width="8" stroke-dasharray="283" stroke-dashoffset="283"
+                                transform="rotate(-90 50 50)" style="transition: stroke-dashoffset 1.5s;" />
+                            <text x="50" y="55" text-anchor="middle" id="texto-circular"
+                                style="font-size: 12px; font-weight: 800;">0%</text>
+                        </svg>
+                    </div>
+                    <div class="chart-card" style="background: white; padding: 25px; border-radius: 15px;">
+                        <h3>⚠️ Próximos Cobros</h3>
+                        <div id="lista-cobros-hoy"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-clientes" class="content-section" style="display:none;">
+                <header class="section-header" style="display: flex; justify-content: space-between;">
+                    <h2>Gestión de Clientes</h2>
+                    <button class="btn-cobrar" onclick="abrirModalCliente()"><i class="fas fa-plus"></i> Nuevo
+                        Cliente</button>
+                </header>
+                <div class="lista-maestra-container">
+                    <input type="text" id="buscar-cliente-tabla" onkeyup="filtrarClientes()"
+                        placeholder="Buscar cliente...">
+                    <table class="tabla-pos">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Cédula</th>
+                                <th>WhatsApp</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-clientes-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="sec-prestamos" class="content-section" style="display:none;">
+                <header class="section-header" style="display: flex; justify-content: space-between;">
+                    <h2>Gestión de Préstamos</h2>
+                    <button class="btn-guardar" onclick="abrirModalPrestamo()"><i class="fas fa-plus"></i> Nuevo
+                        Préstamo</button>
+                </header>
+                <div class="lista-maestra-container">
+                    <table class="tabla-pos">
+                        <thead>
+                            <tr>
+                                <th>ID/Fecha</th>
+                                <th>Cliente</th>
+                                <th>Monto</th>
+                                <th>Saldo</th>
+                                <th>Modalidad</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-gestion-prestamos-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="sec-cobranza" class="content-section" style="display:none;">
+                <header class="section-header">
+                    <h2>Centro de Cobros</h2>
+                </header>
+                <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px;">
+                    <aside class="panel-cobro-rapido"
+                        style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 2px solid #e2e8f0;">
+                        <label>BUSCAR CÉDULA:</label>
+                        <div style="display: flex; gap: 5px; margin-top: 10px;">
+                            <input type="text" id="cedula-cobro" placeholder="001-0000000-0">
+                            <button class="btn-buscar" onclick="buscarPrestamoPorCedula()"><i
+                                    class="fas fa-search"></i></button>
+                        </div>
+                        <div id="resultado-busqueda-cobro"></div>
+                    </aside>
+                    <div class="lista-maestra-container">
+                        <table class="tabla-pos">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Saldo</th>
+                                    <th>Vencimiento</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-maestra-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-gastos" class="content-section" style="display:none;">
+                <header class="section-header">
+                    <h2>Control de Caja Chica</h2>
+                </header>
+                <div class="caja-chica-container"
+                    style="background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                    <form id="form-gasto" onsubmit="registrarGasto(event)">
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="gasto-concepto" placeholder="Concepto (Ej: Alquiler)" required>
+                            <input type="number" id="gasto-monto" placeholder="Monto RD$" required>
+                            <select id="gasto-categoria">
+                                <option value="Operativo">Operativo</option>
+                                <option value="Personal">Personal</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                            <button type="submit" class="btn-guardar">Registrar</button>
+                        </div>
+                    </form>
+                </div>
+                <table class="tabla-pos">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Concepto</th>
+                            <th>Categoría</th>
+                            <th>Monto</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-gastos-body"></tbody>
+                </table>
+            </section>
+
+            <section id="sec-reportes" class="content-section" style="display:none;">
+                
+
+                <div id="utilidad-neta">
+                    <p style="text-align:center; padding:50px; opacity:0.5;">
+                        Selecciona fechas para calcular capital e intereses...
+                    </p>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="modal-cliente" class="modal">
+        <div class="modal-content">
+            <h3>📝 Nuevo Cliente</h3>
+            <form id="client-form">
+                <label>Nombre:</label><input type="text" id="nombre-cliente" required>
+                <label>Cédula:</label><input type="text" id="cedula-cliente" required>
+                <label>WhatsApp:</label><input type="text" id="tel-cliente" required>
+                <div class="modal-actions">
+                    <button type="button" onclick="cerrarModalCliente()" class="btn-cancelar">Cancelar</button>
+                    <button type="submit" class="btn-guardar">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-prestamo" class="modal">
+        <div class="modal-content" style="width: 500px;">
+            <h3>📝 Nuevo Préstamo</h3>
+            <form id="loan-form">
+                <label>Cédula:</label>
+                <input type="text" id="cliente-cedula" oninput="buscarClientePorCedulaAuto(this.value)" required>
+                <label>Nombre:</label>
+                <input type="text" id="cliente-nombre" readonly style="background:#f1f5f9;">
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:1;"><label>Monto:</label><input type="number" id="monto" required></div>
+                    <div style="flex:1;"><label>Tasa (%):</label><input type="number" id="tasa" step="any"></div>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:1;"><label>Cuotas:</label><input type="number" id="cuotas" required></div>
+                    <div style="flex:1;"><label>Frecuencia:</label>
+                        <select id="frecuencia">
+                            <option value="7">Semanal</option>
+                            <option value="15">Quincenal</option>
+                            <option value="30">Mensual</option>
+                        </select>
+                    </div>
+                </div>
+                <label>Modalidad:</label>
+                <select id="modalidad">
+                    <option value="cuota_fija">Cuota Fija</option>
+                    <option value="interes_fijo">Réditos</option>
+                </select>
+                <label>Primer Pago:</label><input type="date" id="fecha-primer-pago" required>
+                <div id="calculo-cuota" style="margin-top: 15px; min-height: 50px;">
+    Esperando datos...
+</div>
+                <div class="modal-actions">
+                    <button type="button" onclick="cerrarModalPrestamo()" class="btn-cancelar">Cancelar</button>
+                    <button type="submit" class="btn-guardar">Aprobar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-cobro" class="modal">
+        <div class="modal-content">
+            <h3>Registrar Pago</h3>
+            <div id="info-cliente-cobro"></div>
+            <form id="form-pago">
+                <input type="hidden" id="id-prestamo-pago">
+                <label>Monto RD$:</label><input type="number" id="monto-pago" step="0.01" required>
+                <div class="modal-actions">
+                    <button type="button" onclick="cerrarModalCobro()" class="btn-cancelar">Cancelar</button>
+                    <button type="submit" class="btn-cobrar">Procesar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/prestamos.js"></script>
+    <script src="js/clientes.js"></script>
+    <script src="js/reportes.js"></script>
+    <script src="js/cobros.js"></script>
+    <script src="js/gastos.js"></script>
+
+    <script src="js/dashboard.js"></script>
+
+    <script>
+        function mostrarSeccion(id) {
+            document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+
+            const seccion = document.getElementById('sec-' + id);
+            if (seccion) seccion.style.display = 'block';
+
+            const link = document.querySelector(`[onclick="mostrarSeccion('${id}')"]`);
+            if (link) link.classList.add('active');
+
+            // ACTIVAR CARGA DE DATOS
+            if (id === 'reportes') window.calcularUtilidades();
+            if (id === 'gastos') renderizarGastos();
+            if (id === 'prestamos') renderizarTablaPrestamos();
+            if (id === 'cobranza') renderizarListaMaestra();
+        }
+
+        window.onload = () => {
+            mostrarSeccion('dashboard');
+        };
+    </script>
+</body>
+
+</html>
