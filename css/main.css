@@ -706,3 +706,113 @@ body:has(.login-card), body:has(.login-container) {
 
 .btn-buscar:hover { background-color: #1d4ed8; } /* Azul más oscuro */
 .btn-cobrar:hover { background-color: #047857; } /* Verde más oscuro */
+
+@media (max-width: 768px) {
+    .container-pos {
+        flex-direction: column; /* Pone el menú arriba y el contenido abajo */
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        padding: 10px;
+    }
+
+    .sidebar-menu {
+        display: flex;
+        overflow-x: auto; /* Permite deslizar el menú de lado */
+        gap: 10px;
+    }
+
+    .sidebar-menu a {
+        white-space: nowrap; /* Evita que el texto se rompa */
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-grid, .stats-grid {
+        grid-template-columns: 1fr !important; /* Una sola columna para que las tarjetas sean grandes */
+    }
+
+    .login-card {
+        width: 90%;
+        padding: 20px;
+    }
+}
+
+button, .sidebar-menu a {
+    min-height: 44px; /* Tamaño mínimo recomendado por Google para botones táctiles */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* AJUSTES PARA MÓVILES (Celulares y Tablets) */
+@media (max-width: 768px) {
+    
+    /* A. El Sidebar se vuelve un menú inferior para fácil acceso */
+    .container-pos {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        z-index: 1000;
+        padding: 5px 0;
+        border-right: none;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .sidebar-header {
+        display: none; /* Ocultamos el logo en móvil para ganar espacio */
+    }
+
+    .sidebar-menu {
+        display: flex;
+        justify-content: space-around;
+        padding: 5px;
+    }
+
+    .sidebar-menu a {
+        flex-direction: column;
+        font-size: 0.7rem;
+        padding: 8px 5px;
+        gap: 5px;
+        text-align: center;
+    }
+
+    .sidebar-menu i {
+        font-size: 1.2rem;
+    }
+
+    /* B. Contenido principal con margen inferior para no tapar con el menú */
+    main, .main-content {
+        padding: 15px;
+        padding-bottom: 80px; /* Espacio para el menú inferior */
+    }
+
+    /* C. Tarjetas del Dashboard una debajo de otra */
+    .stats-grid, .header-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+
+    /* D. Tablas: Deslizamiento lateral suave */
+    .table-container {
+        overflow-x: auto;
+        display: block;
+        white-space: nowrap;
+        background: white;
+        border-radius: 8px;
+    }
+
+    /* E. Modales: Que ocupen casi toda la pantalla */
+    .modal-content {
+        width: 95% !important;
+        margin: 10px;
+        padding: 15px;
+    }
+}
