@@ -26,4 +26,5 @@ El sistema utiliza una lógica de **Abono Real al Capital**.
 El acceso al sistema está protegido por un módulo de autenticación administrativa para asegurar que solo personal autorizado pueda gestionar los activos de la empresa.
 
 ---
-© 2026 Inversiones Martínez | Desarrollado por Julio César Soriano Amparo.
+
+© 2026 Inversiones Martínez | Desarrollado por Yamilka Castillo Lanfranco.
