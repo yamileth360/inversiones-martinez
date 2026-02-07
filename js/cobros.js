@@ -292,19 +292,21 @@ window.enviarWhatsApp = function (p, monto, detalleBase) {
     const c = clientes.find(item => item.cedula == p.cedula);
     let tel = (c && c.telefono) ? String(c.telefono).replace(/\D/g, '') : "";
 
-    // Codificamos el mensaje para que WhatsApp no lo corte
+// 1. Codificamos el mensaje
     const mensajeFinal = encodeURIComponent(mensajeTexto);
 
-    // Abrimos WhatsApp con un ligero retraso para asegurar consistencia
-    setTimeout(() => {
-        let url = "";
-        if (tel.length >= 10) {
-            // Asegurar código de país 1 (Rep. Dom / USA)
-            const phone = tel.startsWith('1') ? tel : '1' + tel;
-            url = `https://wa.me/${phone}?text=${mensajeFinal}`;
-        } else {
-            url = `https://wa.me/?text=${mensajeFinal}`;
-        }
-        window.open(url, '_blank');
-    }, 600);
+    // 2. Preparamos la URL de WhatsApp
+    let url = "";
+    if (tel.length >= 10) {
+        // Asegurar código de país 1 (Rep. Dom)
+        const phone = tel.startsWith('1') ? tel : '1' + tel;
+        url = `https://wa.me/${phone}?text=${mensajeFinal}`;
+    } else {
+        // Si no hay teléfono, abre WhatsApp para elegir contacto
+        url = `https://wa.me/?text=${mensajeFinal}`;
+    }
+
+    // 3. ACCIÓN DIRECTA (Sin setTimeout para evitar bloqueos en iPhone)
+    // Usamos location.href que es mucho más efectivo en iOS
+    window.location.href = url;
 };
