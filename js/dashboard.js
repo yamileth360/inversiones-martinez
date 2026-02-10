@@ -1,7 +1,6 @@
 /**
  * js/dashboard.js - Inversiones Martínez
- * Sincronización 100% en vivo (Sin LocalStorage)
- * Lógica Contable: Amortización Proporcional de Capital e Intereses
+ * Sincronización 100% en vivo - Lógica Contable Corregida
  */
 
 // 1. SEGURIDAD INMEDIATA
@@ -20,7 +19,7 @@ window.cerrarSesion = function() {
     }
 };
 
-// --- 3. MOTOR DE CÁLCULOS PRINCIPAL (ACTUALIZADO) ---
+// --- 3. MOTOR DE CÁLCULOS PRINCIPAL (VERSIÓN FINAL EXACTA) ---
 window.actualizarDashboard = async function () {
     const contenedorLista = document.getElementById('lista-cobros-hoy');
     if (contenedorLista) contenedorLista.innerHTML = "<p style='text-align:center;'>Actualizando indicadores...</p>";
@@ -46,31 +45,36 @@ window.actualizarDashboard = async function () {
 
         // A. PROCESAR PRÉSTAMOS ACTIVOS
         prestamos.forEach(p => {
-            if (p.state === 'activo' || p.estado === 'activo') {
+            const estado = (p.state || p.estado || "").toLowerCase();
+            
+            if (estado === 'activo') {
                 activosCount++;
                 
                 const montoOriginal = parseFloat(p.montoOriginal || p.monto) || 0;
                 const saldoActual = parseFloat(p.saldoPendiente) || 0;
                 const tasa = parseFloat(p.tasa) || 0;
-                
-                // CAMBIO SOLICITADO: Capital en la calle es la suma de los saldos pendientes
+                const modalidad = p.modalidad || "";
+
+                // CAPITAL EN CALLE: Suma directa del saldo que falta por cobrar
                 capitalEnCalle += saldoActual;
 
-                // Lógica de intereses por cobrar (Informativo para el cuadro de Atrasos/Pendientes)
-                if (p.modalidad === 'interes_fijo') {
-                    interesesPorCobrar += Math.max(0, saldoActual - montoOriginal);
+                // LÓGICA DE INTERESES POR COBRAR (Atrasos/Pendientes)
+                if (modalidad === 'interes_fijo') {
+                    // En Réditos, el interés pendiente es solo si el saldo supera al capital original
+                    const interesPendiente = Math.max(0, saldoActual - montoOriginal);
+                    interesesPorCobrar += interesPendiente;
                 } else {
-                    const porcentajeInteres = (tasa / 100) / (1 + (tasa / 100));
-                    interesesPorCobrar += (saldoActual * porcentajeInteres);
+                    // En Cuotas, el interés pendiente es la proporción de la tasa sobre el saldo
+                    const totalConInteres = montoOriginal * (1 + (tasa / 100));
+                    const factorInteres = (tasa / 100) / (1 + (tasa / 100));
+                    interesesPorCobrar += (saldoActual * factorInteres);
                 }
 
                 // DETECCIÓN DE COBROS PARA HOY
                 let fechaVenceRaw = p.proximoPago || "";
                 let fechaComparar = "";
                 if (fechaVenceRaw.includes('T')) {
-                    const soloFecha = fechaVenceRaw.split('T')[0]; 
-                    const partes = soloFecha.split('-'); 
-                    fechaComparar = `${partes[2]}/${partes[1]}/${partes[0]}`; 
+                    fechaComparar = fechaVenceRaw.split('T')[0].split('-').reverse().join('/'); 
                 } else {
                     fechaComparar = fechaVenceRaw.trim();
                 }
@@ -82,7 +86,7 @@ window.actualizarDashboard = async function () {
             }
         });
 
-        // B. GANANCIA REAL (Intereses ya cobrados)
+        // B. GANANCIA REAL (Suma directa de lo que ya entró a tu bolsillo)
         interesesYaCobrados = cobrosRealizados.reduce((total, c) => total + (parseFloat(c.interesGanado) || 0), 0);
         
         // 4. RENDERIZADO EN PANTALLA
@@ -90,6 +94,7 @@ window.actualizarDashboard = async function () {
         animarNumero('prestamos-activos', activosCount);
         animarNumero('pagos-hoy', cobrosHoyCount);
 
+        // Actualización de los cuadros de texto
         if(document.getElementById('total-prestado')) 
             document.getElementById('total-prestado').innerText = `RD$ ${Math.round(capitalEnCalle).toLocaleString('es-DO')}`;
         
@@ -99,13 +104,13 @@ window.actualizarDashboard = async function () {
         if(document.getElementById('total-atrasados')) 
             document.getElementById('total-atrasados').innerText = `RD$ ${Math.round(interesesPorCobrar).toLocaleString('es-DO')}`;
 
-        // LISTA VISUAL DE COBROS CON ACCESO DIRECTO (CAMBIO SOLICITADO)
+        // LISTA DE COBROS CON ACCESO DIRECTO
         if (contenedorLista) {
             if (cobrosHoyLista.length > 0) {
                 contenedorLista.innerHTML = cobrosHoyLista.map(p => {
                     const cuotaHoy = p.modalidad === 'interes_fijo' ? 
-                        (parseFloat(p.montoOriginal) * (parseFloat(p.tasa)/100)) : 
-                        (p.saldoPendiente / (p.cuotasTotales || 1));
+                        (parseFloat(p.montoOriginal || p.monto) * (parseFloat(p.tasa)/100)) : 
+                        (parseFloat(p.saldoPendiente) / (parseInt(p.cuotasRestantes) || 1));
                     
                     return `
                         <div onclick="irACobrarDirecto('${p.cedula}')" 
@@ -136,17 +141,14 @@ window.actualizarDashboard = async function () {
 
 // FUNCIÓN PARA SALTO DIRECTO A COBRANZA
 window.irACobrarDirecto = function(cedula) {
-    // 1. Cambiamos a la sección de cobranza
     if (typeof window.mostrarSeccion === 'function') {
         window.mostrarSeccion('cobranza');
     }
     
-    // 2. Esperamos que cargue la sección y ejecutamos búsqueda
     setTimeout(() => {
         const inputCedula = document.getElementById('cedula-cobro');
         if (inputCedula) {
             inputCedula.value = cedula;
-            // Disparar búsqueda automática (definida en cobros.js)
             if (typeof window.buscarPrestamoPorCedula === 'function') {
                 window.buscarPrestamoPorCedula();
             }
