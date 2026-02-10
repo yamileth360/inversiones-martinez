@@ -20,13 +20,12 @@ window.cerrarSesion = function() {
     }
 };
 
-// --- 3. MOTOR DE CÁLCULOS PRINCIPAL (CORREGIDO) ---
+// --- 3. MOTOR DE CÁLCULOS PRINCIPAL (ACTUALIZADO) ---
 window.actualizarDashboard = async function () {
     const contenedorLista = document.getElementById('lista-cobros-hoy');
     if (contenedorLista) contenedorLista.innerHTML = "<p style='text-align:center;'>Actualizando indicadores...</p>";
 
     try {
-        // PETICIÓN DIRECTA A LA NUBE
         const response = await fetch(window.G_URL);
         const db = await response.json();
 
@@ -44,7 +43,6 @@ window.actualizarDashboard = async function () {
         let activosCount = 0;
         let cobrosHoyCount = 0;
         let cobrosHoyLista = []; 
-        let capitalOriginalTotal = 0;
 
         // A. PROCESAR PRÉSTAMOS ACTIVOS
         prestamos.forEach(p => {
@@ -55,17 +53,13 @@ window.actualizarDashboard = async function () {
                 const saldoActual = parseFloat(p.saldoPendiente) || 0;
                 const tasa = parseFloat(p.tasa) || 0;
                 
-                capitalOriginalTotal += montoOriginal;
+                // CAMBIO SOLICITADO: Capital en la calle es la suma de los saldos pendientes
+                capitalEnCalle += saldoActual;
 
-                /**
-                 * LÓGICA DE INTERESES POR COBRAR:
-                 * En Réditos, el interés pendiente es lo que el saldo exceda al capital original.
-                 * En Cuotas, usamos la proporción técnica.
-                 */
+                // Lógica de intereses por cobrar (Informativo para el cuadro de Atrasos/Pendientes)
                 if (p.modalidad === 'interes_fijo') {
                     interesesPorCobrar += Math.max(0, saldoActual - montoOriginal);
                 } else {
-                    const totalConInteresInicial = montoOriginal * (1 + (tasa / 100));
                     const porcentajeInteres = (tasa / 100) / (1 + (tasa / 100));
                     interesesPorCobrar += (saldoActual * porcentajeInteres);
                 }
@@ -88,24 +82,16 @@ window.actualizarDashboard = async function () {
             }
         });
 
-        // B. LÓGICA DE GANANCIA REAL (Intereses ya cobrados desde la pestaña Cobros)
+        // B. GANANCIA REAL (Intereses ya cobrados)
         interesesYaCobrados = cobrosRealizados.reduce((total, c) => total + (parseFloat(c.interesGanado) || 0), 0);
         
-        // C. CÁLCULO DE CAPITAL EN CALLE (Resta Directa: Prestado - Recuperado)
-        const totalDineroEntrado = cobrosRealizados.reduce((total, c) => total + (parseFloat(c.montoTotal || c.monto) || 0), 0);
-        const capitalRecuperadoReal = totalDineroEntrado - interesesYaCobrados;
-        
-        // EL CAPITAL EN CALLE ES EL CAPITAL ENTREGADO MENOS EL CAPITAL QUE YA VOLVIÓ
-        capitalEnCalle = capitalOriginalTotal - capitalRecuperadoReal;
-
         // 4. RENDERIZADO EN PANTALLA
         animarNumero('total-clientes', clientes.length);
         animarNumero('prestamos-activos', activosCount);
         animarNumero('pagos-hoy', cobrosHoyCount);
 
-        // Cuadros principales redondeados para evitar decimales molestos
         if(document.getElementById('total-prestado')) 
-            document.getElementById('total-prestado').innerText = `RD$ ${Math.max(0, Math.round(capitalEnCalle)).toLocaleString('es-DO')}`;
+            document.getElementById('total-prestado').innerText = `RD$ ${Math.round(capitalEnCalle).toLocaleString('es-DO')}`;
         
         if(document.getElementById('total-intereses')) 
             document.getElementById('total-intereses').innerText = `RD$ ${Math.round(interesesYaCobrados).toLocaleString('es-DO')}`;
@@ -113,32 +99,26 @@ window.actualizarDashboard = async function () {
         if(document.getElementById('total-atrasados')) 
             document.getElementById('total-atrasados').innerText = `RD$ ${Math.round(interesesPorCobrar).toLocaleString('es-DO')}`;
 
-        // GRÁFICO CIRCULAR DE PROGRESO (Basado en recuperación de capital real)
-        const circulo = document.getElementById('circulo-progreso');
-        const textoCirculo = document.getElementById('texto-circular');
-        if (circulo && textoCirculo) {
-            let porcentaje = capitalOriginalTotal > 0 ? (capitalRecuperadoReal / capitalOriginalTotal) * 100 : 0;
-            porcentaje = Math.min(Math.max(porcentaje, 0), 100); 
-            circulo.style.strokeDashoffset = 283 - (porcentaje * 283 / 100);
-            textoCirculo.textContent = Math.round(porcentaje) + "%";
-        }
-
-        // LISTA VISUAL DE COBROS PARA HOY
+        // LISTA VISUAL DE COBROS CON ACCESO DIRECTO (CAMBIO SOLICITADO)
         if (contenedorLista) {
             if (cobrosHoyLista.length > 0) {
                 contenedorLista.innerHTML = cobrosHoyLista.map(p => {
-                    const montoMostrar = p.modalidad === 'interes_fijo' ? 
+                    const cuotaHoy = p.modalidad === 'interes_fijo' ? 
                         (parseFloat(p.montoOriginal) * (parseFloat(p.tasa)/100)) : 
                         (p.saldoPendiente / (p.cuotasTotales || 1));
                     
                     return `
-                        <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; align-items:center;">
+                        <div onclick="irACobrarDirecto('${p.cedula}')" 
+                             style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid #eee; align-items:center; cursor:pointer; background:#fff;"
+                             onmouseover="this.style.background='#f8fafc'" 
+                             onmouseout="this.style.background='#fff'">
                             <div>
-                                <strong style="display:block;">${p.nombre}</strong>
+                                <strong style="display:block; color:#1e293b;">${p.nombre}</strong>
                                 <small style="color:#64748b;">Saldo: RD$ ${Math.round(p.saldoPendiente).toLocaleString()}</small>
+                                <br><small style="color:#22c55e; font-weight:bold;">Toca para cobrar →</small>
                             </div>
                             <span style="color:#2563eb; font-weight:800; font-size:1.1rem;">
-                                RD$ ${Math.round(montoMostrar).toLocaleString()}
+                                RD$ ${Math.round(cuotaHoy).toLocaleString()}
                             </span>
                         </div>
                     `;
@@ -152,6 +132,26 @@ window.actualizarDashboard = async function () {
         console.error("Error cargando Dashboard:", e);
         if (contenedorLista) contenedorLista.innerHTML = "<p style='color:red; text-align:center;'>Error de conexión con Google Sheets</p>";
     }
+};
+
+// FUNCIÓN PARA SALTO DIRECTO A COBRANZA
+window.irACobrarDirecto = function(cedula) {
+    // 1. Cambiamos a la sección de cobranza
+    if (typeof window.mostrarSeccion === 'function') {
+        window.mostrarSeccion('cobranza');
+    }
+    
+    // 2. Esperamos que cargue la sección y ejecutamos búsqueda
+    setTimeout(() => {
+        const inputCedula = document.getElementById('cedula-cobro');
+        if (inputCedula) {
+            inputCedula.value = cedula;
+            // Disparar búsqueda automática (definida en cobros.js)
+            if (typeof window.buscarPrestamoPorCedula === 'function') {
+                window.buscarPrestamoPorCedula();
+            }
+        }
+    }, 400);
 };
 
 // 4. FUNCIONES DE APOYO
@@ -179,11 +179,9 @@ window.mostrarSeccion = function(id) {
         const link = document.querySelector(`[onclick="mostrarSeccion('${id}')"]`);
         if (link) link.classList.add('active');
     }
-    // Refrescar datos si vuelve al dashboard
     if (id === 'dashboard') window.actualizarDashboard();
 };
 
-// Inicialización automática
 document.addEventListener('DOMContentLoaded', () => { 
     window.actualizarDashboard(); 
 });
