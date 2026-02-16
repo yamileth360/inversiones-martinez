@@ -246,26 +246,56 @@ window.renderizarListaMaestra = async function () {
 // 5. ENVIAR WHATSAPP (Ajustado para pagos finales)
 window.enviarWhatsApp = function (p, monto, detalleBase) {
     const ahora = new Date();
-    const fechaRecibo = ahora.toLocaleString('es-DO', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    const fechaRecibo = ahora.toLocaleString('es-DO', { 
+        day: 'numeric', 
+        month: 'numeric', 
+        year: 'numeric', 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+    });
 
     const proximoPagoLimpio = p.saldoPendiente <= 0 ? "¡PRÉSTAMO FINALIZADO!" : formatearFechaLimpia(p.proximoPago);
     const saldoFormateado = Math.round(p.saldoPendiente).toLocaleString('es-DO');
     const montoFormateado = Math.round(monto).toLocaleString('es-DO');
 
-    let lineaDetalle = (p.modalidad !== "interes_fijo") ? `Cuota de ${p.cuotasTotales}` : `Pago de Réditos`;
+    // --- LÓGICA DE DETALLE: Cuota #X de Y (Faltan Z) ---
+    let lineaDetalle = "";
+    if (p.modalidad !== "interes_fijo") {
+        const actual = parseInt(p.cuotasPagadas) || 0;
+        const totales = parseInt(p.cuotasTotales) || 0;
+        const faltan = Math.max(0, totales - actual);
+        
+        lineaDetalle = `Cuota #${actual} de ${totales} (Faltan ${faltan})`;
+    } else {
+        lineaDetalle = `Pago de Réditos (Interés)`;
+    }
 
+    // --- CONSTRUCCIÓN DEL MENSAJE IGUAL A TU EJEMPLO ---
     const mensajeTexto =
         `*INVERSIONES MARTÍNEZ* 🏦\n` +
         `*RECIBO DE PAGO DIGITAL*\n\n` +
         `*Fecha:* ${fechaRecibo}\n` +
         `*Cliente:* ${p.nombre.toUpperCase()}\n` +
+        `*Concepto:* ${detalleBase}\n` +
+        `*Detalle:* ${lineaDetalle}\n` +
         `*Monto Pagado:* RD$ ${montoFormateado}\n` +
         `--------------------------\n` +
-        `*SALDO RESTANTE:* RD$ ${saldoFormateado}\n\n` +
-        `*Estado:* ${p.saldoPendiente <= 0 ? 'SALDADO ✅' : 'Próximo Pago: ' + proximoPagoLimpio}\n\n` +
+        `*SALDO PENDIENTE:* RD$ ${saldoFormateado}\n\n` +
+        `*Próximo Pago:* ${proximoPagoLimpio}\n\n` +
         `_¡Gracias por su cumplimiento!_`;
 
     const mensajeFinal = encodeURIComponent(mensajeTexto);
-    // Nota: Aquí asumo que tienes el teléfono en los datos p o en caché
-    window.location.href = `https://wa.me/?text=${mensajeFinal}`;
+
+    // Intentar obtener el teléfono de los datos del préstamo o del cliente
+    let tel = p.telefono ? String(p.telefono).replace(/\D/g, '') : "";
+    
+    // Si el teléfono tiene 10 dígitos, agregamos el 1 de Rep. Dom.
+    if (tel.length === 10) tel = "1" + tel;
+
+    const url = tel.length >= 11 
+        ? `https://wa.me/${tel}?text=${mensajeFinal}` 
+        : `https://wa.me/?text=${mensajeFinal}`;
+
+    window.location.href = url;
 };
